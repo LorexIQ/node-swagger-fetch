@@ -1,0 +1,8 @@
+{
+  "swaggerURL": "https://catrinix.atrinix.ru/swagger/?format=openapi",
+  "dirPath": "./api",
+  "isAllKeysRequired": true,
+  "updateEntity": true,
+  "updateAPI": true,
+  "updateSystemTypes": true
+}
