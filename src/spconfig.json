@@ -1,5 +1,5 @@
 {
-  "swaggerURL": "https://catrinix.atrinix.ru/swagger/?format=openapi",
+  "swaggerURL": "http://localhost:8000/swagger-json",
   "dirPath": "./api",
   "isAllKeysRequired": true,
   "updateEntity": true,

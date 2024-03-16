@@ -1,4 +1,4 @@
-import config from './swagger-parser.config.json';
+import config from './spconfig.json';
 import * as AxiosAll from 'axios';
 import fs from 'fs';
 import path from 'path';
@@ -105,11 +105,12 @@ function createEntityInterfaceFile(key: string, definition: DefinitionStruct): v
     );
 }
 function parseAndWriteDefinitions(json: BaseSwaggerStruct): void {
-    const keys = Object.keys(json.definitions);
+    const definitions = json.definitions ?? json.components.schemas;
+    const keys = Object.keys(definitions);
 
     createIndexEntityFile(keys);
 
-    for (const key of keys) createEntityInterfaceFile(key, json.definitions[key]);
+    for (const key of keys) createEntityInterfaceFile(key, definitions[key]);
 }
 
 function createSystemTypesFile(): void {
@@ -152,11 +153,12 @@ function getPathMethod(path: string, method: PathMethodStruct, parameters: PathP
 
     const responses = method.responses;
     const query = method.parameters.filter(parameter => parameter.in === 'query') as PathParameterQuery[];
+    const parametersInner = method.parameters.filter(parameter => parameter.in === 'path') as PathParameterPath[];
     const body = method.parameters.find(parameter => parameter.in === 'body') as PathParameterBody;
 
     for (const responseKey of Object.keys(responses)) {
         const response = responses[responseKey];
-        const responseType = getPathSchemaType(response.schema, tabs + 2);
+        const responseType = getPathSchemaType(response.schema ?? response.content?.['application/json']?.schema, tabs + 2);
 
         if (responseType[0]) importsList = new Set([...importsList, ...responseType[0]]);
 
@@ -170,7 +172,7 @@ function getPathMethod(path: string, method: PathMethodStruct, parameters: PathP
         queryList.push({ tabs: tabs + 2, text: `${queryObj.name}?: APIQuery;${queryObj.description ? ` // ${queryObj.description}` : ''}` });
     }
 
-    for (const parameter of parameters) {
+    for (const parameter of (parameters ?? parametersInner)) {
         parametersList.push({ tabs: tabs + 2, text: `${parameter.name}: APIParameter;` });
     }
 

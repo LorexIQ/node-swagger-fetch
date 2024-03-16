@@ -35,7 +35,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const swagger_parser_config_json_1 = __importDefault(require("./swagger-parser.config.json"));
+const spconfig_json_1 = __importDefault(require("./spconfig.json"));
 const AxiosAll = __importStar(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
@@ -49,20 +49,20 @@ const axios = AxiosAll.default;
 //     updateSystemTypes: true,
 //     ..._config
 // };
-const entityDir = path_1.default.resolve(swagger_parser_config_json_1.default.dirPath, 'entity');
+const entityDir = path_1.default.resolve(spconfig_json_1.default.dirPath, 'entity');
 const typeAssociations = {
     'count-name-previous-results': ['ApiPagination']
 };
 function getSwaggerJson() {
     return __awaiter(this, void 0, void 0, function* () {
         return yield axios
-            .get(swagger_parser_config_json_1.default.swaggerURL)
+            .get(spconfig_json_1.default.swaggerURL)
             .then(res => res.data);
     });
 }
 function writeToFile(name, data) {
     function tab(n) {
-        return [...Array(n)].map(el => '\t').join('');
+        return [...Array(n)].map(() => '\t').join('');
     }
     fs_1.default.writeFileSync(name, data.map(row => `${tab(row.tabs)}${row.text}`).join('\n'));
 }
@@ -86,7 +86,7 @@ function getObjectFromPropertiesWithIncludes(properties) {
     return [importsList, propertiesList];
 }
 function getEntityProperty(property, key) {
-    const isRequired = swagger_parser_config_json_1.default.isAllKeysRequired || !property["x-nullable"];
+    const isRequired = spconfig_json_1.default.isAllKeysRequired || !property["x-nullable"];
     if (!property.type) {
         const refName = getNameByRef(property.$ref);
         return [refName, key ? `${key}${isRequired ? '' : '?'}: ${refName}` : refName];
@@ -109,12 +109,12 @@ function createIndexEntityFile(keys) {
 }
 function createOrSkipFolderCreation() {
     function enableFullRefresh() {
-        swagger_parser_config_json_1.default.updateEntity = true;
-        swagger_parser_config_json_1.default.updateAPI = true;
-        swagger_parser_config_json_1.default.updateSystemTypes = true;
+        spconfig_json_1.default.updateEntity = true;
+        spconfig_json_1.default.updateAPI = true;
+        spconfig_json_1.default.updateSystemTypes = true;
     }
-    if (!fs_1.default.existsSync(swagger_parser_config_json_1.default.dirPath)) {
-        fs_1.default.mkdirSync(swagger_parser_config_json_1.default.dirPath);
+    if (!fs_1.default.existsSync(spconfig_json_1.default.dirPath)) {
+        fs_1.default.mkdirSync(spconfig_json_1.default.dirPath);
         enableFullRefresh();
     }
     if (!fs_1.default.existsSync(entityDir)) {
@@ -129,13 +129,15 @@ function createEntityInterfaceFile(key, definition) {
     fs_1.default.writeFileSync(path_1.default.resolve(entityDir, `${key}.entity.ts`), `${importsList.size ? `${includesResult}` : ''}${interfaceResult}`);
 }
 function parseAndWriteDefinitions(json) {
-    const keys = Object.keys(json.definitions);
+    var _a;
+    const definitions = (_a = json.definitions) !== null && _a !== void 0 ? _a : json.components.schemas;
+    const keys = Object.keys(definitions);
     createIndexEntityFile(keys);
     for (const key of keys)
-        createEntityInterfaceFile(key, json.definitions[key]);
+        createEntityInterfaceFile(key, definitions[key]);
 }
 function createSystemTypesFile() {
-    writeToFile(path_1.default.resolve(swagger_parser_config_json_1.default.dirPath, 'system.types.ts'), [
+    writeToFile(path_1.default.resolve(spconfig_json_1.default.dirPath, 'system.types.ts'), [
         { tabs: 0, text: 'export type APIQuery = string | number;' },
         { tabs: 0, text: 'export type APIParameter = string | number;' },
         { tabs: 0, text: 'export type APIEmpty = {};' }
@@ -166,6 +168,7 @@ function getPathSchemaType(schema, tabs = 0) {
     }
 }
 function getPathMethod(path, method, parameters, tabs = 1) {
+    var _a, _b, _c;
     let importsList = new Set();
     const responsesList = [];
     const queryList = [];
@@ -173,10 +176,11 @@ function getPathMethod(path, method, parameters, tabs = 1) {
     const bodyResult = [];
     const responses = method.responses;
     const query = method.parameters.filter(parameter => parameter.in === 'query');
+    const parametersInner = method.parameters.filter(parameter => parameter.in === 'path');
     const body = method.parameters.find(parameter => parameter.in === 'body');
     for (const responseKey of Object.keys(responses)) {
         const response = responses[responseKey];
-        const responseType = getPathSchemaType(response.schema, tabs + 2);
+        const responseType = getPathSchemaType((_a = response.schema) !== null && _a !== void 0 ? _a : (_c = (_b = response.content) === null || _b === void 0 ? void 0 : _b['application/json']) === null || _c === void 0 ? void 0 : _c.schema, tabs + 2);
         if (responseType[0])
             importsList = new Set([...importsList, ...responseType[0]]);
         responsesList.push(...mergeLineWithList({ tabs: tabs + 2, text: `${responseKey}: ` }, responseType[1]));
@@ -184,7 +188,7 @@ function getPathMethod(path, method, parameters, tabs = 1) {
     for (const queryObj of query) {
         queryList.push({ tabs: tabs + 2, text: `${queryObj.name}?: APIQuery;${queryObj.description ? ` // ${queryObj.description}` : ''}` });
     }
-    for (const parameter of parameters) {
+    for (const parameter of (parameters !== null && parameters !== void 0 ? parameters : parametersInner)) {
         parametersList.push({ tabs: tabs + 2, text: `${parameter.name}: APIParameter;` });
     }
     if (body) {
@@ -264,17 +268,17 @@ function parseAndWritePaths(json) {
         }, []),
         { tabs: 0, text: '}' },
     ];
-    writeToFile(path_1.default.resolve(swagger_parser_config_json_1.default.dirPath, 'index.ts'), [...importsResult, ...typeResult]);
+    writeToFile(path_1.default.resolve(spconfig_json_1.default.dirPath, 'index.ts'), [...importsResult, ...typeResult]);
 }
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const json = yield getSwaggerJson();
         createOrSkipFolderCreation();
-        if (swagger_parser_config_json_1.default.updateSystemTypes)
+        if (spconfig_json_1.default.updateSystemTypes)
             createSystemTypesFile();
-        if (swagger_parser_config_json_1.default.updateEntity)
+        if (spconfig_json_1.default.updateEntity)
             parseAndWriteDefinitions(json);
-        if (swagger_parser_config_json_1.default.updateAPI)
+        if (spconfig_json_1.default.updateAPI)
             parseAndWritePaths(json);
     });
 }

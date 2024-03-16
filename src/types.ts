@@ -10,6 +10,7 @@ interface BaseSwaggerStruct {
     security: any[];
     paths: { [name: string]: PathStruct };
     definitions: { [name: string]: DefinitionStruct };
+    components: { schemas: { [name: string]: DefinitionStruct } };
 }
 
 interface LineWriteStruct {
@@ -52,6 +53,11 @@ interface PathMethodStruct {
 interface PathMethodResponseStruct {
     description: string;
     schema?: PathMethodResponseSchemaType;
+    content?: {
+        'application/json': {
+            schema: PathMethodResponseSchemaType;
+        }
+    }
 }
 
 type PathParameter = PathParameterBody | PathParameterQuery | PathParameterPath;
